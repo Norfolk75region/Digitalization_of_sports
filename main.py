@@ -68,24 +68,50 @@ def transform_data(file_name='Ульяновская область, отчет 
         "МБУ «СШ №1»": "7325025843",
         "ОГКУ ДО СШ по дзюдо \"Спарта\"": "7327030158",
     } #словарь для маппинга имени организации в ИНН
-    column_name = {1: 'inn_organization',
-                   2: 'count_of_employees',
-                   4: 'count_trener',
-                   6: 'count_trener_with_train',
-                   11: 'count_of_students',
-                   13: 'count_adult_students'}
-    #Получаем дату отчёта из имени файла
+    column_name = {
+        1: 'INN',
+                   2: 'fact_employee',
+                   3: 'fact_act_employee',
+                   4: 'fact_trainers',
+                   5: 'fact_act_trainers',
+                   6: 'trainers_training',
+                   7: 'act_trainers_training',
+                   11: 'sportsmans',
+                   12: 'act_sportsmans',
+                   13: 'sportmans_old',
+                   14: 'sportmans_act_training',
+                   15: 'sportmans_no_group',
+                   16: 'noactive_sportsmans_act_training',
+                   19: 'parents',
+                   20: 'act_parents',
+                   21: 'expect_parents',
+                   22: 'parents_child_training',
+                   23: 'parents_child_training_act',
+                   28: 'all_groups',
+                   29: 'groups_no_sportsmans',
+                   30: 'groups_no_active_sportsmans',
+                   31: 'groups_no_act_trainer',
+                   33: 'schedule_sportsmans_PER',
+                   36: 'group_schedule_PER',
+                   38: 'journaling_PER',
+                   39: 'attendance_PER',
+                   40: 'absence_marks',
+                   41: 'training_plan'
+                   }
+    # Получаем дату отчёта из имени файла
     date = re.findall('\d\d\.\d\d\.\d\d', file_name)
     date = datetime.datetime.strptime(date[0], '%d.%m.%y')
     data_frame = pd.read_excel(file_name)
-    data_frame = data_frame.iloc[3:39, 2:] #Забираем строки и столбцы с данными
-    data_frame.columns = range(data_frame.columns.size)#Переименовываем название столбцов 0-41
-    data_frame.reset_index(drop=True, inplace=True)#сбрасываем нумерацию строк
-    data_frame = data_frame.rename(columns=column_name)#присваиваем колонкам имена из словаря
-    data_frame['inn_organization'] = data_frame['inn_organization'].replace(inn)#заменяем названия организаций на ИНН
-    data_frame = pd.DataFrame((data_frame[series] for series in column_name.values())).T #заменяем датафрейм согласно словарю с таблицами
+    data_frame = data_frame.iloc[3:39, 2:]  # Забираем строки и столбцы с данными
+    data_frame.columns = range(data_frame.columns.size)  # Переименовываем название столбцов 0-41
+    data_frame.reset_index(drop=True, inplace=True)  # сбрасываем нумерацию строк
+    data_frame = data_frame.rename(columns=column_name)  # присваиваем колонкам имена из словаря
+    data_frame['INN'] = data_frame['INN'].replace(inn)  # заменяем названия организаций на ИНН
+    data_frame = pd.DataFrame(
+        (data_frame[series] for series in column_name.values())).T  # заменяем датафрейм согласно словарю с таблицами
+    data_frame = data_frame.applymap(lambda cell_value: re.sub(r'\D', '', str(cell_value)))#Заменяем все значения в ячейках через lambda функцию
     data_frame['date'] = date.strftime('%Y-%m-%d')
-    data_frame.to_json('inn.json') #не обязателен
+    data_frame.to_json('inn.json')  # не обязателен
     data_frame.to_csv(f'sport_today.csv', sep=';')
     return
 
