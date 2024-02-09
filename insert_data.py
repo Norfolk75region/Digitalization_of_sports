@@ -1,18 +1,20 @@
+import glob
+import os
+
 import pandas as pd
 from airflow.hooks import PostgresHook
-import os, glob
 from r5.helpers.general import Logger
 
 log = Logger()
 
-def main(**kwargs):
+def main(file_name):
     '''
     Вставляем данные в базу
 
     :param kwargs:
     :return:
     '''
-    data = pd.read_json('inn.json')
+    data = pd.read_csv(file_name)
     pg_hook = PostgresHook(postgress_conn_id='ul_db')
     for index, row in data.iterrows():
         columns = f'{", ".join(row.keys())}'

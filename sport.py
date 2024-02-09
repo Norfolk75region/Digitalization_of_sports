@@ -19,7 +19,7 @@ default_args = {
 host_volumes = Variable.get('host_environment', deserialize_json=True)['volumes']
 volume_share = f'{host_volumes["share"]}:/app/share'
 volume_cache = f'{host_volumes["cache"]}:/app/cache'
-volume_source = f'{host_volumes["source"]}:/app/source'
+volume_source = f'{host_volumes["serrource"]}:/app/source'
 volume_metadata = f'{host_volumes["metadata"]}:/app/metadata'
 
 volumes = [volume_cache, volume_source, volume_metadata]
@@ -53,6 +53,8 @@ python_path = '/app/source/python/ul_sport'
 # настройки для загрузки из DWASH
 
 load_directory = f'/sport/to_load'
+replace_directory = f'/sport/loaded'
+
 
 def dwash_loader(dag, name, token, bucket_name, loader_storage):
     t = DockerOperator(
@@ -110,6 +112,13 @@ with DAG(dag_id=dag_id, default_args=default_args, catchup=False, schedule_inter
         bucket_name=bucket_name,
         loader_storage=f'{load_directory}'
     )
+    convert_xlsx_to_csv = create_operator(
+        f'convert_xlsx_to_csv',
+        {
+            'AF_SCRIPT_PATH': f'{python_path}/convert_to_csv.py',
+            'AF_LOAD_PATH': f'{load_directory}',
+        }
+    )
 
     convert_data_task = create_operator(
         f'convert_data',
@@ -126,4 +135,13 @@ with DAG(dag_id=dag_id, default_args=default_args, catchup=False, schedule_inter
         'python /app/source/python/run.py'
     )
 
-    get_data_task >> convert_data_task >> insert_task  # порядок выполнения тасков
+    move_file = create_operator(
+        f'move_file_after_load',
+        {
+            'AF_SCRIPT_PATH': f'{python_path}/move_file_after_insert.py',
+            'AF_LOAD_PATH': f'{load_directory}',
+            'AF_REPLACE_PATH': f'{replace_directory}'
+        }
+    )
+
+    get_data_task >> convert_xlsx_to_csv >> convert_data_task >> insert_task >> move_file  # порядок выполнения тасков
